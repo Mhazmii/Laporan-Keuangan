@@ -1,0 +1,84 @@
+<!DOCTYPE html>
+<html lang="id">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Laporan Keuangan Harian</title>
+    <script src="https://cdn.tailwindcss.com"></script>
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/jspdf/2.4.0/jspdf.umd.min.js"></script>
+    <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
+    <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js"></script>
+    <style>
+        body { background: linear-gradient(to right, #1e3c72, #2a5298); }
+    </style>
+</head>
+<body class="flex flex-col justify-center items-center min-h-screen text-white">
+    <div class="text-center mb-6">
+        <h1 class="text-3xl font-bold">🚀 Kelola Keuanganmu, Raih Kebebasan Finansial! 💰</h1>
+        <p class="mt-2 text-lg">Pantau pengeluaran & pemasukan dengan mudah.</p>
+    </div>
+    
+    <div id="auth" class="bg-white text-gray-800 p-6 rounded-xl shadow-2xl w-full max-w-lg">
+        <h2 class="text-center text-2xl font-bold mb-2">Masuk / Daftar</h2>
+        <input type="email" id="email" class="w-full p-2 border rounded-lg mb-2" placeholder="Email">
+        <input type="password" id="password" class="w-full p-2 border rounded-lg mb-2" placeholder="Password">
+        <button class="w-full bg-green-500 text-white p-2 rounded-lg" onclick="login()">Masuk</button>
+        <button class="w-full bg-blue-500 text-white p-2 rounded-lg mt-2" onclick="register()">Daftar</button>
+    </div>
+
+    <div id="dashboard" class="hidden bg-white text-gray-800 p-6 rounded-xl shadow-2xl w-full max-w-lg">
+        <button class="w-full bg-red-500 text-white p-2 rounded-lg mb-2" onclick="logout()">Logout</button>
+        <h2 class="text-center text-2xl font-bold mb-2">Laporan Keuangan Harian</h2>
+        <input type="date" id="tanggal" class="w-full p-2 border rounded-lg mb-2" placeholder="Tanggal">
+        <input type="text" id="keterangan" class="w-full p-2 border rounded-lg mb-2" placeholder="Keterangan">
+        <select id="tipe" class="w-full p-2 border rounded-lg mb-2">
+            <option value="pemasukan">Pemasukan</option>
+            <option value="pengeluaran">Pengeluaran</option>
+        </select>
+        <input type="number" id="jumlah" class="w-full p-2 border rounded-lg mb-2" placeholder="Jumlah (Rp)">
+        <button class="w-full bg-green-500 text-white p-2 rounded-lg" onclick="tambahTransaksi()">Tambah Transaksi</button>
+        <canvas id="grafikKeuangan" class="mt-4"></canvas>
+    </div>
+
+    <script>
+        const supabaseUrl = "https://xyzcompany.supabase.co";
+        const supabaseKey = "eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6ImV0aHVxcXV5ZXZ4bnBjZ3NtaGtzIiwicm9sZSI6ImFub24iLCJpYXQiOjE3NDExMzk0NzIsImV4cCI6MjA1NjcxNTQ3Mn0.em-b_YoNHcoxeBPU3GP2Icfj2YQIFLs7gnO7mv5ryqg";
+        const supabase = supabase.createClient(supabaseUrl, supabaseKey);
+        
+        async function register() {
+            const email = document.getElementById("email").value;
+            const password = document.getElementById("password").value;
+            const { user, error } = await supabase.auth.signUp({ email, password });
+            if (error) alert(error.message);
+            else alert("Registrasi berhasil, silakan cek email!");
+        }
+
+        async function login() {
+            const email = document.getElementById("email").value;
+            const password = document.getElementById("password").value;
+            const { user, error } = await supabase.auth.signInWithPassword({ email, password });
+            if (error) alert(error.message);
+            else {
+                document.getElementById("auth").classList.add("hidden");
+                document.getElementById("dashboard").classList.remove("hidden");
+            }
+        }
+
+        async function logout() {
+            await supabase.auth.signOut();
+            document.getElementById("auth").classList.remove("hidden");
+            document.getElementById("dashboard").classList.add("hidden");
+        }
+
+        async function checkUser() {
+            const { data: { user } } = await supabase.auth.getUser();
+            if (user) {
+                document.getElementById("auth").classList.add("hidden");
+                document.getElementById("dashboard").classList.remove("hidden");
+            }
+        }
+
+        checkUser();
+    </script>
+</body>
+</html>
