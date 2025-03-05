@@ -7,9 +7,9 @@
     <script src="https://cdn.tailwindcss.com"></script>
     <script src="https://cdnjs.cloudflare.com/ajax/libs/jspdf/2.4.0/jspdf.umd.min.js"></script>
     <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
-    <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js"></script>
     <style>
-        body { background: linear-gradient(135deg, #1e3c72, #2a5298); color: white; }
+        body { background: linear-gradient(135deg, #1E1E2E, #3A506B); color: white; }
+        .container { max-width: 800px; }
     </style>
 </head>
 <body class="flex flex-col justify-center items-center min-h-screen text-white">
@@ -19,85 +19,115 @@
     </div>
     
     <div class="bg-white text-gray-800 p-6 rounded-xl shadow-2xl w-full max-w-lg">
-        <h2 class="text-center text-blue-600 text-2xl font-bold mb-2">Laporan Keuangan Harian</h2>
-        <p class="text-center text-gray-500 mb-4">Mengelola keuangan Anda dengan lebih baik</p>
+        <h2 class="text-center text-blue-600 text-2xl font-bold mb-2">Laporan Keuangan</h2>
+        <input type="date" id="tanggal" class="w-full p-2 border rounded-lg" required>
+        <input type="text" id="keterangan" class="w-full p-2 border rounded-lg" placeholder="Keterangan">
+        <select id="tipe" class="w-full p-2 border rounded-lg">
+            <option value="pemasukan">Pemasukan</option>
+            <option value="pengeluaran">Pengeluaran</option>
+        </select>
+        <input type="number" id="jumlah" class="w-full p-2 border rounded-lg" placeholder="Jumlah (Rp)">
+        <button class="w-full bg-green-500 text-white p-2 rounded-lg mt-2" onclick="tambahTransaksi()">Tambah Transaksi</button>
+        <button class="w-full bg-blue-500 text-white p-2 rounded-lg mt-2" onclick="exportPDF('harian')">Simpan PDF Harian</button>
+        <button class="w-full bg-purple-500 text-white p-2 rounded-lg mt-2" onclick="exportPDF('bulanan')">Simpan PDF Bulanan</button>
         
-        <div id="auth-section" class="space-y-3">
-            <input type="email" id="email" class="w-full p-2 border rounded-lg" placeholder="Email">
-            <input type="password" id="password" class="w-full p-2 border rounded-lg" placeholder="Password">
-            <button class="w-full bg-blue-500 text-white p-2 rounded-lg" onclick="daftar()">Daftar</button>
-            <button class="w-full bg-green-500 text-white p-2 rounded-lg" onclick="login()">Login</button>
-        </div>
+        <h4 class="mt-4 text-lg font-semibold">Data Keuangan</h4>
+        <table class="w-full border text-center mt-2" id="tabelKeuangan">
+            <thead>
+                <tr>
+                    <th class="border p-2">Tanggal</th>
+                    <th class="border p-2">Keterangan</th>
+                    <th class="border p-2">Pemasukan (Rp)</th>
+                    <th class="border p-2">Pengeluaran (Rp)</th>
+                    <th class="border p-2">Aksi</th>
+                </tr>
+            </thead>
+            <tbody></tbody>
+        </table>
 
-        <div id="dashboard" class="hidden space-y-3">
-            <h3 class="text-lg font-semibold">Selamat Datang! 🎉</h3>
-            <input type="date" id="tanggal" class="w-full p-2 border rounded-lg">
-            <input type="text" id="keterangan" class="w-full p-2 border rounded-lg" placeholder="Keterangan">
-            <select id="tipe" class="w-full p-2 border rounded-lg">
-                <option value="pemasukan">Pemasukan</option>
-                <option value="pengeluaran">Pengeluaran</option>
-            </select>
-            <input type="number" id="jumlah" class="w-full p-2 border rounded-lg" placeholder="Jumlah (Rp)">
-            <button class="w-full bg-green-500 text-white p-2 rounded-lg" onclick="tambahTransaksi()">Tambah Transaksi</button>
-            <button class="w-full bg-red-500 text-white p-2 rounded-lg" onclick="logout()">Logout</button>
-            <h4 class="mt-4 text-lg font-semibold">Grafik Keuangan</h4>
-            <canvas id="grafikKeuangan"></canvas>
-        </div>
+        <h4 class="mt-4 text-lg font-semibold">Grafik Keuangan</h4>
+        <canvas id="grafikKeuangan"></canvas>
     </div>
     
     <script>
-        const supabaseUrl = "https://ethuqquyevxnpcgsmhks.supabase.co";
-        const supabaseKey = "eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6ImV0aHVxcXV5ZXZ4bnBjZ3NtaGtzIiwicm9sZSI6ImFub24iLCJpYXQiOjE3NDExMzk0NzIsImV4cCI6MjA1NjcxNTQ3Mn0.em-b_YoNHcoxeBPU3GP2Icfj2YQIFLs7gnO7mv5ryqg";
-        const supabase = supabase.createClient(supabaseUrl, supabaseKey);
-        
-        async function daftar() {
-            const email = document.getElementById("email").value;
-            const password = document.getElementById("password").value;
-            const { user, error } = await supabase.auth.signUp({ email, password });
-            if (error) return alert(error.message);
-            alert("Pendaftaran berhasil! Cek email untuk verifikasi.");
-        }
-        
-        async function login() {
-            const email = document.getElementById("email").value;
-            const password = document.getElementById("password").value;
-            const { user, error } = await supabase.auth.signInWithPassword({ email, password });
-            if (error) return alert(error.message);
-            localStorage.setItem("user", JSON.stringify(user));
-            tampilkanDashboard();
-        }
-        
-        function tampilkanDashboard() {
-            document.getElementById("auth-section").classList.add("hidden");
-            document.getElementById("dashboard").classList.remove("hidden");
-        }
-        
-        async function logout() {
-            await supabase.auth.signOut();
-            localStorage.removeItem("user");
-            location.reload();
-        }
-        
-        async function tambahTransaksi() {
-            const user = JSON.parse(localStorage.getItem("user"));
-            if (!user) return alert("Harap login terlebih dahulu");
-            const transaksi = {
-                user_id: user.id,
-                tanggal: document.getElementById("tanggal").value,
+        let transaksi = JSON.parse(localStorage.getItem("transaksi")) || [];
+        let chart;
+        renderTable();
+
+        function tambahTransaksi() {
+            const tanggal = document.getElementById("tanggal").value;
+            if (!tanggal) {
+                alert("Tanggal harus diisi!");
+                return;
+            }
+            const data = {
+                tanggal,
                 keterangan: document.getElementById("keterangan").value,
                 tipe: document.getElementById("tipe").value,
-                jumlah: document.getElementById("jumlah").value,
+                jumlah: parseFloat(document.getElementById("jumlah").value)
             };
-            const { error } = await supabase.from("transaksi").insert([transaksi]);
-            if (error) return alert(error.message);
-            alert("Transaksi berhasil ditambahkan!");
+            transaksi.push(data);
+            localStorage.setItem("transaksi", JSON.stringify(transaksi));
+            renderTable();
         }
-        
-        async function cekLogin() {
-            const user = JSON.parse(localStorage.getItem("user"));
-            if (user) tampilkanDashboard();
+
+        function exportPDF(jenis) {
+            const { jsPDF } = window.jspdf;
+            const doc = new jsPDF();
+            let dataToExport = transaksi;
+            if (jenis === 'harian') {
+                const selectedDate = document.getElementById("tanggal").value;
+                dataToExport = transaksi.filter(t => t.tanggal === selectedDate);
+            } else if (jenis === 'bulanan') {
+                const selectedMonth = document.getElementById("tanggal").value.slice(0,7);
+                dataToExport = transaksi.filter(t => t.tanggal.startsWith(selectedMonth));
+            }
+            
+            let content = "Laporan Keuangan \n\n";
+            dataToExport.forEach(t => {
+                content += `${t.tanggal} | ${t.keterangan} | ${t.tipe} | Rp ${t.jumlah}\n`;
+            });
+            doc.text(content, 10, 10);
+            doc.save(`Laporan_Keuangan_${jenis}.pdf`);
         }
-        cekLogin();
+
+        function hapusTransaksi(index) {
+            transaksi.splice(index, 1);
+            localStorage.setItem("transaksi", JSON.stringify(transaksi));
+            renderTable();
+        }
+
+        function editTransaksi(index) {
+            const keterangan = prompt("Edit Keterangan", transaksi[index].keterangan);
+            const jumlah = prompt("Edit Jumlah", transaksi[index].jumlah);
+            if (keterangan !== null && jumlah !== null) {
+                transaksi[index].keterangan = keterangan;
+                transaksi[index].jumlah = parseFloat(jumlah);
+                localStorage.setItem("transaksi", JSON.stringify(transaksi));
+                renderTable();
+            }
+        }
+
+        function renderTable() {
+            const tbody = document.querySelector("#tabelKeuangan tbody");
+            tbody.innerHTML = "";
+            transaksi.forEach((t, index) => {
+                tbody.innerHTML += `<tr>
+                    <td class='border p-2'>${t.tanggal}</td>
+                    <td class='border p-2'>${t.keterangan}</td>
+                    <td class='border p-2'>${t.tipe === "pemasukan" ? t.jumlah : "-"}</td>
+                    <td class='border p-2'>${t.tipe === "pengeluaran" ? t.jumlah : "-"}</td>
+                    <td class='border p-2'>
+                        <select onchange='if(this.value === "edit") editTransaksi(${index}); else hapusTransaksi(${index})'>
+                            <option value="">Pilih Aksi</option>
+                            <option value="edit">Edit</option>
+                            <option value="hapus">Hapus</option>
+                        </select>
+                    </td>
+                </tr>`;
+            });
+            updateGrafik();
+        }
     </script>
 </body>
 </html>
